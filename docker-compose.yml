@@ -1,0 +1,45 @@
+# Everything self-hosted: no document leaves this compose network.
+# First run:  docker compose up -d && docker compose exec ollama ollama pull llama3.1 && docker compose exec ollama ollama pull nomic-embed-text
+#             docker compose exec api python /scripts/gen_synthetic.py && docker compose exec api python /scripts/seed.py
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment: { POSTGRES_DB: arca, POSTGRES_USER: arca, POSTGRES_PASSWORD: arca }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5433:5432"]
+
+  ollama:
+    image: ollama/ollama:0.13.0
+    volumes: [ollama:/root/.ollama]
+    ports: ["11435:11434"]
+
+  api:
+    build: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment: &env
+      DATABASE_URL: postgresql://arca:arca@db:5432/arca
+      OLLAMA_URL: http://ollama:11434
+      BLOB_DIR: /data/blobs
+      EXTRACT_MODEL: llama3.1:latest
+    volumes: [./data:/data, ./scripts:/scripts]
+    ports: ["8000:8000"]
+    depends_on: [db, ollama]
+
+  worker:
+    build: ./backend
+    command: python -m app.worker
+    environment: { <<: *env, WORKER_CONCURRENCY: "2" }
+    volumes: [./data:/data]
+    depends_on: [db, ollama]
+    deploy: { replicas: 2 }  # scale horizontally: docker compose up --scale worker=N
+
+  web:
+    image: node:22-alpine
+    working_dir: /web
+    command: sh -c "npm ci && npx vite --host 0.0.0.0 --port 5173"
+    environment: { API_URL: http://api:8000 }
+    volumes: [./web:/web, /web/node_modules]
+    ports: ["5173:5173"]
+    depends_on: [api]
+
+volumes: { pgdata: {}, ollama: {} }

@@ -1,0 +1,182 @@
+{
+  "cmc_HT-101_3.2.P.pdf": {
+    "doc_type": "cmc",
+    "product": "HT-101",
+    "excipient_grades": [
+      "Microcrystalline cellulose: Avicel PH-102, NF",
+      "Croscarmellose sodium: Ac-Di-Sol, NF",
+      "Magnesium stearate: NF, vegetable source"
+    ],
+    "grade_justification": "Avicel PH-102 was selected over PH-101 because its larger median particle size (approximately 100 um) provides superior powder flow for direct compression at commercial press speeds; three engineering batches showed weight variation below 1.5% RSD.",
+    "guidance_cited": [
+      "ICH Q8(R2) Pharmaceutical Development",
+      "USP-NF monograph for Microcrystalline Cellulose"
+    ],
+    "contradicts_spec": false,
+    "contradiction_detail": null
+  },
+  "cmc_HT-204_3.2.P.pdf": {
+    "doc_type": "cmc",
+    "product": "HT-204",
+    "excipient_grades": [
+      "Microcrystalline cellulose: Avicel PH-101, NF",
+      "Lactose monohydrate: Fast-Flo 316, NF",
+      "Magnesium stearate: NF, vegetable source"
+    ],
+    "grade_justification": "Avicel PH-101 was chosen for its finer particle size, which improves content uniformity of the low-dose active in the wet granulation process. Blend uniformity across development batches met the acceptance criterion of 90.0-110.0%.",
+    "guidance_cited": [
+      "ICH Q8(R2) Pharmaceutical Development",
+      "ICH Q6A Specifications",
+      "FDA Guidance for Industry: Nonclinical Studies for the Safety Evaluation of Pharmaceutical Excipients"
+    ],
+    "contradicts_spec": true,
+    "contradiction_detail": "Submission uses Avicel PH-101; current spec requires Avicel PH-102."
+  },
+  "cmc_HT-317_3.2.P.pdf": {
+    "doc_type": "cmc",
+    "product": "HT-317",
+    "excipient_grades": [
+      "Pregelatinized starch: Starch 1500, NF",
+      "Colloidal silicon dioxide: Aerosil 200, NF",
+      "Magnesium stearate: NF, vegetable source"
+    ],
+    "grade_justification": "Starch 1500 was selected because its partial pregelatinization provides both filling and disintegration function in a single excipient, minimizing the number of components in the capsule fill. Dissolution exceeded 85% in 30 minutes for all registration batches.",
+    "guidance_cited": [
+      "ICH Q8(R2) Pharmaceutical Development",
+      "Ph. Eur. monograph 1267 Pregelatinised Starch"
+    ],
+    "contradicts_spec": false,
+    "contradiction_detail": null
+  },
+  "cmc_HT-422_3.2.P.pdf": {
+    "doc_type": "cmc",
+    "product": "HT-422",
+    "excipient_grades": [
+      "Lactose monohydrate: Ph. Eur., milled grade 200 mesh",
+      "Povidone: K30, Ph. Eur.",
+      "Sodium stearyl fumarate: PRUV, NF"
+    ],
+    "grade_justification": "Milled lactose monohydrate (200 mesh) was used because it is the grade qualified at the European contract manufacturer and is compatible with the aqueous granulation process. Compatibility studies at 40C/75% RH for 3 months showed no increase in degradants.",
+    "guidance_cited": [
+      "ICH Q8(R2) Pharmaceutical Development",
+      "EMA Guideline on Excipients in the Dossier for Application for Marketing Authorisation of a Medicinal Product"
+    ],
+    "contradicts_spec": true,
+    "contradiction_detail": "Submission uses milled lactose monohydrate (Ph. Eur.); current spec requires anhydrous lactose NF."
+  },
+  "cmc_HT-509_3.2.P.pdf": {
+    "doc_type": "cmc",
+    "product": "HT-509",
+    "excipient_grades": [
+      "Polysorbate 80: Super Refined, low peroxide, NF",
+      "Sucralose: NF",
+      "Sodium benzoate: NF"
+    ],
+    "grade_justification": "A low-peroxide grade of polysorbate 80 was required because dunaxitib is susceptible to oxidative degradation; standard grade lots produced oxidative degradant D-3 above the 0.2% identification threshold at 6 months accelerated.",
+    "guidance_cited": [
+      "ICH Q8(R2) Pharmaceutical Development",
+      "ICH Q3B(R2) Impurities in New Drug Products"
+    ],
+    "contradicts_spec": false,
+    "contradiction_detail": null
+  },
+  "cmc_HT-611_3.2.P.pdf": {
+    "doc_type": "cmc",
+    "product": "HT-611",
+    "excipient_grades": [
+      "Mannitol: Pearlitol 200 SD, USP",
+      "Crospovidone: Polyplasdone XL-10, NF",
+      "Magnesium stearate: NF, vegetable source"
+    ],
+    "grade_justification": "Spray-dried mannitol (Pearlitol 200 SD) was selected for its pleasant mouthfeel and compressibility, enabling disintegration in under 30 seconds per USP <701>.",
+    "guidance_cited": [
+      "FDA Guidance for Industry: Orally Disintegrating Tablets",
+      "ICH Q8(R2) Pharmaceutical Development"
+    ],
+    "contradicts_spec": false,
+    "contradiction_detail": null
+  },
+  "spec_ES-2026-03_current_excipient_specification.pdf": {
+    "doc_type": "spec"
+  },
+  "ha_letter_FDA-2025-0412.pdf": {
+    "doc_type": "ha_letter",
+    "product": "HT-101",
+    "commitment": "submit the final 36-month long-term stability data for three commercial-scale batches of Halvorex 50 mg tablets",
+    "due_date": "2026-06-30",
+    "met": null,
+    "owner": "Dr. Priya Raman, CMC Regulatory Lead"
+  },
+  "ha_letter_EMA-2025-0907.pdf": {
+    "doc_type": "ha_letter",
+    "product": "HT-422",
+    "commitment": "provide a validated method for nitrosamine impurity N-nitroso-olcetrine with a limit of quantitation at or below 30 ng/day equivalent",
+    "due_date": "2026-03-31",
+    "met": null,
+    "owner": null
+  },
+  "ha_letter_FDA-2025-1120.pdf": {
+    "doc_type": "ha_letter",
+    "product": "HT-509",
+    "commitment": "conduct an in-use stability study of the opened bottle over 60 days under patient-use conditions",
+    "due_date": "2026-09-30",
+    "met": null,
+    "owner": "Marcus Ode, Analytical Development"
+  },
+  "ha_letter_PMDA-2026-0115.pdf": {
+    "doc_type": "ha_letter",
+    "product": "HT-317",
+    "commitment": "submit dissolution profile comparison data (f2) between the registration and the proposed commercial capsule shell supplier",
+    "due_date": "2026-07-15",
+    "met": null,
+    "owner": null
+  },
+  "ha_letter_FDA-2026-0302.pdf": {
+    "doc_type": "ha_letter",
+    "product": "HT-611",
+    "commitment": "revise the disintegration acceptance criterion to NMT 30 seconds and submit the updated specification in a CBE-30 supplement",
+    "due_date": "2026-05-01",
+    "met": null,
+    "owner": "Dr. Priya Raman, CMC Regulatory Lead"
+  },
+  "stability_protocol_SP-101-02.pdf": {
+    "doc_type": "stability_protocol",
+    "product": "HT-101",
+    "storage_condition": "25C/60% RH (long-term) and 40C/75% RH (accelerated)",
+    "timepoints": "0, 3, 6, 9, 12, 18, 24, 36 months (long-term); 0, 3, 6 months (accelerated)",
+    "acceptance_criteria": "Assay 95.0-105.0%; any unspecified degradant NMT 0.2%; total degradants NMT 1.0%; dissolution Q=80% at 30 minutes",
+    "deviations": "Deviation DEV-2025-118: the 9-month long-term pull was performed 6 days late due to chamber maintenance; impact assessed as none.",
+    "bracketing_justification": "Bracketing is applied to the 30-count and 500-count HDPE bottle presentations; the 90-count presentation is not tested because container closure and fill ratio fall within the bracket.",
+    "post_approval_commitment": "The first three commercial batches will be placed on long-term stability post-approval and one batch per year thereafter."
+  },
+  "stability_protocol_SP-204-01.pdf": {
+    "doc_type": "stability_protocol",
+    "product": "HT-204",
+    "storage_condition": "30C/75% RH (long-term, Zone IVb) and 40C/75% RH (accelerated)",
+    "timepoints": "0, 3, 6, 9, 12, 18, 24 months (long-term); 0, 1, 3, 6 months (accelerated)",
+    "acceptance_criteria": "Assay 90.0-110.0%; impurity S-2 NMT 0.5%; water content NMT 5.0%",
+    "deviations": "No deviations have been recorded to date.",
+    "bracketing_justification": "Bracketing is not applied; all strengths and pack sizes are tested.",
+    "post_approval_commitment": "One production batch per year will be added to the annual stability program."
+  },
+  "stability_protocol_SP-509-03.pdf": {
+    "doc_type": "stability_protocol",
+    "product": "HT-509",
+    "storage_condition": "5C plus or minus 3C (long-term) and 25C/60% RH (accelerated)",
+    "timepoints": "0, 3, 6, 9, 12, 18, 24 months (long-term); 0, 1, 3, 6 months (accelerated)",
+    "acceptance_criteria": "Assay 95.0-105.0%; oxidative degradant D-3 NMT 0.2%; pH 4.5-5.5; preservative content 80-110% of label",
+    "deviations": "Deviation DEV-2026-022: refrigerator excursion to 11C for 4 hours on 2026-02-14; samples retained and results evaluated as within specification.",
+    "bracketing_justification": "Bracketing is applied to the 60 mL and 240 mL bottle fills based on identical container closure materials; the 120 mL fill is bracketed.",
+    "post_approval_commitment": "The in-use stability study requested under FDA-2025-1120 will be conducted on the first commercial batch."
+  },
+  "stability_protocol_SP-611-01.pdf": {
+    "doc_type": "stability_protocol",
+    "product": "HT-611",
+    "storage_condition": "25C/60% RH (long-term), 30C/65% RH (intermediate) and 40C/75% RH (accelerated)",
+    "timepoints": "0, 3, 6, 9, 12, 18, 24 months (long-term); 0, 6, 12 months (intermediate); 0, 3, 6 months (accelerated)",
+    "acceptance_criteria": "Assay 95.0-105.0%; disintegration NMT 30 seconds; hardness 20-40 N; total degradants NMT 1.5%",
+    "deviations": "No deviations have been recorded to date.",
+    "bracketing_justification": "Matrixing, rather than bracketing, is applied across blister strengths per ICH Q1D.",
+    "post_approval_commitment": "None stated beyond the routine annual batch placement."
+  }
+}

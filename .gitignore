@@ -1,0 +1,9 @@
+.venv/
+node_modules/
+web/dist/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+.DS_Store
+data/blobs/
+.env
