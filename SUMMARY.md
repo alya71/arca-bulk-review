@@ -40,6 +40,15 @@ review = questions + document filter (+ optional reference doc, e.g. current spe
 | HA commitments (5 × 4) | #4 | 18/20 (90%) | 17/17 | Correctly says "not found" for *has it been met?* on all 5. 2 misses: returned a role ("Regulatory Project Manager") where no named owner exists |
 | Stability protocols (4 × 6) | #6 | 24/24 (100%) | 24/24 | Before the evidence-repair pass (#5): 24/24 values correct but **0 cited**, all shown as `unverified`. The safety net held |
 
+**Same pipeline, same prompt (extract_v2), Kimi K3 (open-weight, via Fireworks):**
+| Ask | Job | Correct | Citations verified | Wall time (all docs, 8 worker threads) |
+|---|---|---|---|---|
+| CMC excipients vs spec | #8 | 24/24 (100%) | 24/24 | 42 s |
+| HA commitments | #9 | 20/20 (100%; 7 of these are correct "not found") | 18/18 | 52 s |
+| Stability protocols | #7 | 24/24 (100%) | 24/24 | 22 s |
+
+Kimi K3 fixes the over-flagging on brand names and the role-vs-person misses, and finishes each preset in under a minute instead of 10–15 (about $0.70 for all three). The caveat: the synthetic set is now saturated, so it no longer tells models apart on accuracy. The next eval needs harder, real-shaped documents. Embeddings still run locally. In production, the K3 weights would run in the customer's cloud (vLLM or a dedicated deployment), not on a shared API.
+
 Iteration log: v1 prompt 0/24 on CMC (status-first schema) → v2 evidence-first 13/24 → evidence-aware scoring 17/24 → evidence repair took stability from 0% to 100% verified.
 
 **Why CMC contradictions over-flag:** the `spec_comparison` column makes it visible. The 8B model lists *"Croscarmellose sodium: conflict (Ac-Di-Sol vs NF)"*, treating a brand name as a conflict despite the instruction. A reviewer spots it in seconds. The fix is architectural, not a prompt tweak: the LLM extracts (excipient, grade) pairs from both documents, and **code** does the comparison with explicit normalization rules.

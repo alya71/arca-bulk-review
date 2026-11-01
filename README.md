@@ -2,7 +2,7 @@
 
 Ask the same questions of many regulatory documents and get a grid of answers. Every claim cites a quote that has been **verified to exist verbatim in the original PDF**, and the quote is highlighted on that PDF.
 
-Self-hosted end to end: Postgres + pgvector, an open-weight model via Ollama, and PyMuPDF. No document leaves the machine.
+Open-weight models only, with no closed-model APIs: Postgres + pgvector, PyMuPDF, and either Ollama (fully local; no document leaves the machine) or Kimi K3 hosted on Fireworks for the demo.
 
 ## Run locally (what the demo uses)
 
@@ -22,7 +22,14 @@ cd backend && .venv/bin/python -m app.worker &               # queue worker (run
 cd web && npm install && npm run dev                          # UI → http://localhost:5173
 ```
 
-Or use `docker compose up` (see the header of `docker-compose.yml` for the model-pull and seed commands).
+**Model:** by default extraction runs on llama3.1 through Ollama. To use a hosted open-weight model through Fireworks, create `arca/.env`:
+```bash
+FIREWORKS_API_KEY=fw_...
+EXTRACT_MODEL=accounts/fireworks/models/kimi-k3   # any accounts/... id routes to Fireworks
+```
+Each job records the model it ran with. Embeddings always run locally via Ollama. With a hosted model, raise `WORKER_CONCURRENCY` (e.g. 8).
+
+`docker-compose.yml` is included but untested; the native setup above is the supported path.
 
 ## Demo path
 1. **New review** → pick the *CMC excipient grades vs current spec* template (it attaches the current spec as the reference document).
