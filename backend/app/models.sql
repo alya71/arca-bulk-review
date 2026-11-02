@@ -115,12 +115,14 @@ CREATE TABLE IF NOT EXISTS citations (
   cell_id      INT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
   doc_id       INT NOT NULL REFERENCES documents(id),
   chunk_id     INT REFERENCES chunks(id),
-  quote        TEXT NOT NULL,
-  verified     BOOLEAN NOT NULL,
+  quote        TEXT NOT NULL,                       -- what the model claimed (kept for the record)
+  source_text  TEXT,                                -- the document's own words for the match; shown to users
+  verified     BOOLEAN NOT NULL,                    -- true only for an exact match
   match_score  REAL,
   page         INT,
   rects        JSONB NOT NULL DEFAULT '[]'          -- [{page,x0,y0,x1,y1}] in PDF points
 );
+ALTER TABLE citations ADD COLUMN IF NOT EXISTS source_text TEXT;
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id       SERIAL PRIMARY KEY,

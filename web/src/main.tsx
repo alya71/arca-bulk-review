@@ -6,7 +6,7 @@ import { getUser, setUser } from './api'
 import NewReview from './pages/NewReview'
 import ConfirmDocs from './pages/ConfirmDocs'
 import Results from './pages/Results'
-import Security from './pages/Security'
+import Security, { AuditLog } from './pages/Security'
 
 function Shell() {
   const [user, setU] = useState(getUser())
@@ -16,7 +16,8 @@ function Shell() {
         <Link to="/" className="brand">Bulk Review</Link>
         <nav className="nav">
           <NavLink to="/" end>Reviews</NavLink>
-          <NavLink to="/security">Security &amp; audit log</NavLink>
+          <NavLink to="/security">Security</NavLink>
+          <NavLink to="/audit">Audit log</NavLink>
         </nav>
         <label className="user">
           Reviewer
@@ -29,6 +30,7 @@ function Shell() {
           <Route path="/reviews/:id/confirm" element={<ConfirmDocs />} />
           <Route path="/jobs/:id" element={<Results />} />
           <Route path="/security" element={<Security />} />
+          <Route path="/audit" element={<AuditLog />} />
         </Routes>
       </main>
     </BrowserRouter>

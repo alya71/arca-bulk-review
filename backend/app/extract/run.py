@@ -105,6 +105,7 @@ def run_task(conn, provider: LLMProvider, job: dict, review: dict, doc: dict, qu
             cites.append({
                 "doc_id": target_doc, "chunk_id": located_in or (chunk["id"] if chunk else None), "quote": quote,
                 "verified": m is not None, "match_score": m.score if m else None,
+                "source_text": m.text if m else None,
                 "rects": rects_for(ws, m.word_start, m.word_end) if m else [],
             })
         return cites

@@ -100,6 +100,7 @@ td.cell ul { margin: 0; padding: 0; list-style: none; } td.cell li + li { margin
 .citation.sel { background: var(--sel); }
 .citation q { font-family: Georgia, serif; font-size: 13px; }
 .citation.bad { padding: 6px 8px; border-radius: 4px; }
+.claimed { text-decoration: line-through; opacity: .75; }
 .jump { font-size: 12px; padding: 3px 8px; border-color: var(--ok); color: var(--ok); }
 .jump.sel { background: var(--ok-bg); }
 .review { margin: 8px 0 4px; }

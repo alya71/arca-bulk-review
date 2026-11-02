@@ -31,7 +31,7 @@ export default function NewReview() {
 
   const submit = async () => {
     setErr('')
-    if (!preset) return setErr('Choose a template.')
+    if (!preset) return setErr('Choose a task.')
     if (!purpose.trim()) return setErr('Add a purpose: it is kept with the review for the audit trail.')
     const qs = questions.filter(q => q.key.trim() && q.prompt.trim())
     // The template decides the document type, search terms and reference spec; the user only narrows by product.
@@ -50,7 +50,7 @@ export default function NewReview() {
       <h1>New bulk review</h1>
 
       <section className="card">
-        <h3>1. Template</h3>
+        <h3>Task</h3>
         <div className="templates">
           {presets.map(p => (
             <button key={p.id} className={`template ${preset?.id === p.id ? 'sel' : ''}`} onClick={() => choose(p)}>
@@ -64,13 +64,13 @@ export default function NewReview() {
       {preset && <>
         <section className="card">
           <div className="grid2">
-            <label>2. Product
+            <label>Product
               <select value={product} onChange={e => setProduct(e.target.value)}>
                 <option value="">All products ({products.length})</option>
                 {products.map(p => <option key={p}>{p}</option>)}
               </select>
             </label>
-            <label>3. Purpose
+            <label>Purpose
               <input value={purpose} placeholder="e.g. Q3 spec change impact assessment" onChange={e => setPurpose(e.target.value)} />
             </label>
           </div>

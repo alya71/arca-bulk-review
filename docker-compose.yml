@@ -1,6 +1,5 @@
-# Everything self-hosted: no document leaves this compose network.
-# First run:  docker compose up -d && docker compose exec ollama ollama pull llama3.1 && docker compose exec ollama ollama pull nomic-embed-text
-#             docker compose exec api python /scripts/gen_synthetic.py && docker compose exec api python /scripts/seed.py
+# Untested. Models run on Fireworks AI: put FIREWORKS_API_KEY in arca/.env first.
+# First run:  docker compose up -d && docker compose exec api python /scripts/gen_synthetic.py && docker compose exec api python /scripts/seed.py
 services:
   db:
     image: pgvector/pgvector:pg17
@@ -8,29 +7,23 @@ services:
     volumes: [pgdata:/var/lib/postgresql/data]
     ports: ["5433:5432"]
 
-  ollama:
-    image: ollama/ollama:0.13.0
-    volumes: [ollama:/root/.ollama]
-    ports: ["11435:11434"]
-
   api:
     build: ./backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     environment: &env
       DATABASE_URL: postgresql://arca:arca@db:5432/arca
-      OLLAMA_URL: http://ollama:11434
       BLOB_DIR: /data/blobs
-      EXTRACT_MODEL: llama3.1:latest
+    env_file: .env
     volumes: [./data:/data, ./scripts:/scripts]
     ports: ["8000:8000"]
-    depends_on: [db, ollama]
+    depends_on: [db]
 
   worker:
     build: ./backend
     command: python -m app.worker
     environment: { <<: *env, WORKER_CONCURRENCY: "2" }
     volumes: [./data:/data]
-    depends_on: [db, ollama]
+    depends_on: [db]
     deploy: { replicas: 2 }  # scale horizontally: docker compose up --scale worker=N
 
   web:
@@ -42,4 +35,4 @@ services:
     ports: ["5173:5173"]
     depends_on: [api]
 
-volumes: { pgdata: {}, ollama: {} }
+volumes: { pgdata: {} }

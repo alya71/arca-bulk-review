@@ -7,30 +7,42 @@ const STATUS_LABEL: Record<string, string> = {
   answered: 'verified', unverified: 'unverified', not_found: 'not found', error: 'error',
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
-  .replace(/[‐-―]/g, '-').replace(/\s+/g, ' ').replace(/^[\s"'.,;:]+|[\s"'.,;:]+$/g, '')
+// Case/typography-folding that keeps string length, so a match index maps back to the original text.
+const fold = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[‐-―]/g, '-')
+const squash = (s: string) => s.replace(/\s+/g, ' ').trim()
+const norm = (s: string) => fold(squash(s)).replace(/^["'.,;:\s]+|["'.,;:\s]+$/g, '')
 
-// An answer item is verbatim when it appears word-for-word inside one of the cell's verified quotes
-// (which were themselves matched against the PDF). Everything else is the model's wording.
-const isVerbatim = (item: string, c: Cell) => {
+// An answer item counts as a quote only if it occurs, on word boundaries, inside the document text of a
+// verified citation. Returns the DOCUMENT's characters for that span (never the model's typing of it).
+const exactSpan = (item: string, c: Cell): string | null => {
   const n = norm(item)
-  return n.length >= 3 && c.citations.some(ci => ci.verified && norm(ci.quote).includes(n))
+  if (n.length < 3) return null
+  for (const ci of c.citations) {
+    if (!ci.verified || !ci.source_text) continue
+    const src = squash(ci.source_text), f = fold(src)
+    for (let i = f.indexOf(n); i !== -1; i = f.indexOf(n, i + 1)) {
+      const j = i + n.length
+      if ((i === 0 || !/[a-z0-9]/.test(f[i - 1])) && (j === f.length || !/[a-z0-9]/.test(f[j]))) return src.slice(i, j)
+    }
+  }
+  return null
 }
+const isVerbatim = (item: string, c: Cell) => exactSpan(item, c) != null
 
 // For free-text answers the model tends to stitch sentences together with small rewordings.
 // If any item isn't verbatim, show the verified quotes (exact by construction) instead,
 // and keep the model's wording as a labelled summary.
 const display = (c: Cell, answerType?: string) => {
   const items = c.value?.items ?? []
-  const quotes = c.citations.filter(ci => ci.verified).map(ci => ci.quote)
+  const quotes = c.citations.filter(ci => ci.verified && ci.source_text).map(ci => ci.source_text!)
   const paraphrased = answerType === 'text' && quotes.length > 0 && items.some(v => !isVerbatim(v, c))
   return { items: paraphrased ? [...new Set(quotes)] : items, summary: paraphrased ? items : null }
 }
 
 function Item({ text, cell, tag }: { text: string; cell: Cell; tag?: boolean }) {
-  const v = isVerbatim(text, cell)
+  const exact = exactSpan(text, cell), v = exact != null
   return <span className={v ? 'verbatim' : undefined} title={v ? 'Exact text from the document' : 'Model wording; check the evidence'}>
-    {v ? <>“{text}”</> : text}
+    {v ? <>“{exact}”</> : text}
     {tag && <span className={`vtag ${v ? 'exact' : 'model'}`}>{v ? 'exact quote' : 'model wording'}</span>}
   </span>
 }
@@ -181,7 +193,7 @@ export default function Results() {
               {!cell.citations.length && <span className="small muted">none</span>}
               {/* Verified quotes are shown where they live, on the PDF; these just jump to them. */}
               {cell.citations.filter(ci => ci.verified).map((ci, i) => (
-                <button key={ci.id} className={`jump ${cite?.id === ci.id ? 'sel' : ''}`} title={ci.quote}
+                <button key={ci.id} className={`jump ${cite?.id === ci.id ? 'sel' : ''}`} title={ci.source_text ?? ''}
                   onClick={() => { setCite(ci); setViewDoc(ci.doc_id) }}>
                   ✓ {i + 1} · {ci.doc_id !== cell.doc_id ? 'reference ' : ''}p.{(ci.page ?? 0) + 1}
                 </button>
@@ -199,8 +211,8 @@ export default function Results() {
             {/* Unverified quotes have no highlight, so their text is the only thing to show. */}
             {cell.citations.filter(ci => !ci.verified).map(ci => (
               <div key={ci.id} className="citation bad small">
-                <span>✕ Quote not found in the source; nothing to highlight</span>
-                <q>{ci.quote}</q>
+                <span>✕ The model claimed this text, but it does not appear verbatim in the document. Not used as evidence.</span>
+                <span className="claimed">{ci.quote}</span>
               </div>
             ))}
           </section>

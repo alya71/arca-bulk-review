@@ -48,9 +48,9 @@ def process(task: dict) -> None:
                     (job["id"], doc["id"], c["question_id"], json.dumps(c["value"]), c["status"])).fetchone()["id"]
                 for ci in c["citations"]:
                     conn.execute(
-                        """INSERT INTO citations(cell_id, doc_id, chunk_id, quote, verified, match_score, page, rects)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
-                        (cell_id, ci["doc_id"], ci["chunk_id"], ci["quote"], ci["verified"], ci["match_score"],
+                        """INSERT INTO citations(cell_id, doc_id, chunk_id, quote, source_text, verified, match_score, page, rects)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        (cell_id, ci["doc_id"], ci["chunk_id"], ci["quote"], ci["source_text"], ci["verified"], ci["match_score"],
                          ci["rects"][0]["page"] if ci["rects"] else None, json.dumps(ci["rects"])))
             conn.execute("UPDATE tasks SET status='done', error=NULL, locked_until=NULL WHERE id=%s", (task["id"],))
             audit(conn, "worker", "extract", f"task:{task['id']}",

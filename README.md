@@ -2,32 +2,27 @@
 
 Ask the same questions of many regulatory documents and get a grid of answers. Every claim cites a quote that has been **verified to exist verbatim in the original PDF**, and the quote is highlighted on that PDF.
 
-Open-weight models only, with no closed-model APIs: Postgres + pgvector, PyMuPDF, and either Ollama (fully local; no document leaves the machine) or Kimi K3 hosted on Fireworks for the demo.
+**Runs on Fireworks AI only.** Answer extraction uses Kimi K3 and search uses nomic-embed-text v1.5, both open-weight models served by Fireworks. Ollama and local models are not supported. Everything else (Postgres + pgvector, PyMuPDF, the API and UI) runs on your machine. Because the weights are open, production would run the same models on the customer's own GPUs.
 
-## Run locally (what the demo uses)
+## Run locally
 
-Requires Postgres with pgvector, Ollama, Python 3.11+, and Node 20+.
+Requires a **Fireworks API key**, Postgres with pgvector, Python 3.11+, and Node 20+.
 
 ```bash
-ollama serve &                                   # if not already running
-ollama pull llama3.1 && ollama pull nomic-embed-text
+# 1. Fireworks key (required; the app won't run without it). arca/.env is git-ignored.
+echo 'FIREWORKS_API_KEY=fw_...' > .env
 createdb arca
 
 python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt
 backend/.venv/bin/python scripts/gen_synthetic.py   # 16 synthetic PDFs + ground_truth.json
-backend/.venv/bin/python scripts/seed.py            # ingest (idempotent by content hash)
+backend/.venv/bin/python scripts/seed.py            # ingest + embed (idempotent by content hash)
 
-cd backend && .venv/bin/uvicorn app.main:app --port 8000 &   # API
-cd backend && .venv/bin/python -m app.worker &               # queue worker (run as many as you like)
-cd web && npm install && npm run dev                          # UI → http://localhost:5173
+cd backend && .venv/bin/uvicorn app.main:app --port 8000 &                     # API
+cd backend && WORKER_CONCURRENCY=8 .venv/bin/python -m app.worker &            # queue worker (run as many as you like)
+cd web && npm install && npm run dev                                            # UI → http://localhost:5173
 ```
 
-**Model:** by default extraction runs on llama3.1 through Ollama. To use a hosted open-weight model through Fireworks, create `arca/.env`:
-```bash
-FIREWORKS_API_KEY=fw_...
-EXTRACT_MODEL=accounts/fireworks/models/kimi-k3   # any accounts/... id routes to Fireworks
-```
-Each job records the model it ran with. Embeddings always run locally via Ollama. With a hosted model, raise `WORKER_CONCURRENCY` (e.g. 8).
+Optional `.env` overrides: `EXTRACT_MODEL` (default `accounts/fireworks/models/kimi-k3`) and `EMBED_MODEL` (default `nomic-ai/nomic-embed-text-v1.5`). Each job records the model it ran with. The worker does not auto-reload, so restart it after backend changes.
 
 `docker-compose.yml` is included but untested; the native setup above is the supported path.
 

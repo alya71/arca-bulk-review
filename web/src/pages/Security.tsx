@@ -21,16 +21,13 @@ function entityLink(e: AuditEntry) {
 
 export default function Security() {
   const [sys, setSys] = useState<System>()
-  const [log, setLog] = useState<AuditEntry[]>([])
-  const [filter, setFilter] = useState('reviewer')
-
-  useEffect(() => { api.system().then(setSys); api.auditAll().then(setLog) }, [])
+  useEffect(() => { api.system().then(setSys) }, [])
 
   const parts: Part[] = [
     { what: 'Original files', tool: 'Local file store (stand-in for S3 / MinIO in your cloud)', license: '-', runs: 'Our server', seesText: true },
     { what: 'PDF parsing + word positions', tool: 'PyMuPDF', license: 'AGPL-3.0 (commercial licence available)', runs: 'Our server', seesText: true },
     { what: 'Database, search, queue, audit log', tool: 'PostgreSQL + pgvector', license: 'PostgreSQL (permissive)', runs: 'Our server', seesText: true },
-    { what: 'Embeddings for search', tool: `${sys?.embed_model ?? 'nomic-embed-text'} via Ollama`, license: 'Apache-2.0 model · MIT runtime',
+    { what: 'Embeddings for search', tool: sys?.embed_model ?? '…', license: 'Open-weight model (Apache-2.0)',
       runs: sys?.embed_host.host ?? '…', seesText: true, external: sys?.embed_host.external },
     { what: 'Answer extraction', tool: sys?.extract_model ?? '…', license: 'Open-weight model',
       runs: sys?.extract_host.host ?? '…', seesText: true, external: sys?.extract_host.external },
@@ -39,28 +36,16 @@ export default function Security() {
     { what: 'API / UI', tool: 'FastAPI · React', license: 'MIT', runs: 'Our server', seesText: false },
   ]
 
-  const shown = useMemo(() => log.filter(e =>
-    filter === 'all' ? true : filter === 'reviewer' ? e.action.startsWith('cell_') : e.action === filter), [log, filter])
-
-  const csv = () => {
-    const rows = [['time', 'actor', 'action', 'entity', 'model', 'prompt_version', 'note'],
-      ...shown.map(e => [e.at, e.actor, e.action, e.entity, String(e.payload.model ?? ''), String(e.payload.prompt_version ?? ''), String(e.payload.note ?? '')])]
-    const blob = new Blob([rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'audit_log.csv'; a.click()
-  }
-
   return (
     <div className="page narrow">
-      <h1>Security &amp; audit</h1>
-      <p className="muted">Where document text goes, what touches it, and a record of every action.</p>
+      <h1>Security</h1>
+      <p className="muted">Where document text goes and what touches it.</p>
 
       <section className="card">
         <h3>Where your documents go</h3>
-        {sys?.extract_host.external
-          ? <p className="callout warn small">Answer extraction currently runs on a hosted API (<b>{sys.extract_host.host}</b>), so document
-            text leaves this server for that step. The model is open-weight: in production the same weights run on GPUs inside your
-            own cloud, and this row reads "self-hosted". Set <code>EXTRACT_MODEL</code> to a local Ollama model to keep everything here today.</p>
-          : <p className="callout ok small">Every component runs on infrastructure we control. No document text is sent to a third party.</p>}
+        <p className="callout warn small">Both models (answer extraction and search embeddings) run on <b>Fireworks AI</b>, so
+          document text is sent to Fireworks for those two steps. Both models are open-weight: in production the same weights
+          run on GPUs inside your own cloud and these rows read "ours". Everything else below already runs on our server.</p>
         <table className="plain small">
           <thead><tr><th>Step</th><th>Tool</th><th>Licence</th><th>Runs on</th></tr></thead>
           <tbody>
@@ -80,9 +65,31 @@ export default function Security() {
         </ul>
       </section>
 
+    </div>
+  )
+}
+
+export function AuditLog() {
+  const [log, setLog] = useState<AuditEntry[]>([])
+  const [filter, setFilter] = useState('reviewer')
+  useEffect(() => { api.auditAll().then(setLog) }, [])
+
+  const shown = useMemo(() => log.filter(e =>
+    filter === 'all' ? true : filter === 'reviewer' ? e.action.startsWith('cell_') : e.action === filter), [log, filter])
+
+  const csv = () => {
+    const rows = [['time', 'actor', 'action', 'entity', 'model', 'prompt_version', 'note'],
+      ...shown.map(e => [e.at, e.actor, e.action, e.entity, String(e.payload.model ?? ''), String(e.payload.prompt_version ?? ''), String(e.payload.note ?? '')])]
+    const blob = new Blob([rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'audit_log.csv'; a.click()
+  }
+
+  return (
+    <div className="page narrow">
+      <h1>Audit log</h1>
       <section className="card">
         <div className="row between wrap">
-          <h3>Audit log</h3>
+          <p className="muted small">Every action, who took it, and the model and prompt version behind it. Append-only.</p>
           <div className="row">
             <select value={filter} onChange={e => setFilter(e.target.value)}>
               <option value="reviewer">Reviewer sign-offs</option>

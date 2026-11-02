@@ -1,5 +1,6 @@
-"""Model access. Open-weight models only: Ollama (self-hosted) or Fireworks (hosted, for the demo;
-in production the same weights run in the customer's cloud). The pipeline only sees LLMProvider."""
+"""Model access. Runs on Fireworks AI only: answer extraction (Kimi K3) and search embeddings
+(nomic-embed-text v1.5). Both are open-weight, so in production the same weights can run on the
+customer's own GPUs behind this same interface. The pipeline only sees LLMProvider and embed()."""
 import json
 import os
 from pathlib import Path
@@ -20,10 +21,16 @@ def _load_dotenv(path: Path = Path(__file__).resolve().parents[2] / ".env") -> N
 _load_dotenv()
 
 FIREWORKS_URL = os.environ.get("FIREWORKS_URL", "https://api.fireworks.ai/inference/v1")
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL", "llama3.1:latest")
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
-NUM_CTX = int(os.environ.get("NUM_CTX", "8192"))
+EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL", "accounts/fireworks/models/kimi-k3")
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-ai/nomic-embed-text-v1.5")
+EMBED_BATCH = 64
+
+
+def _headers() -> dict:
+    key = os.environ.get("FIREWORKS_API_KEY")
+    if not key:
+        raise RuntimeError("FIREWORKS_API_KEY is not set. Add it to arca/.env (this app runs on Fireworks only).")
+    return {"Authorization": f"Bearer {key}"}
 
 
 class LLMProvider(Protocol):
@@ -32,32 +39,14 @@ class LLMProvider(Protocol):
     def generate_json(self, system: str, prompt: str, schema: dict) -> dict: ...
 
 
-class OllamaProvider:
+class FireworksProvider:
+    """OpenAI-compatible chat API with JSON-schema constrained output."""
+
     def __init__(self, model: str = EXTRACT_MODEL):
         self.model = model
 
     def generate_json(self, system: str, prompt: str, schema: dict) -> dict:
-        r = httpx.post(f"{OLLAMA_URL}/api/chat", timeout=600, json={
-            "model": self.model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            "format": schema,  # constrained decoding to the JSON schema
-            "stream": False,
-            "options": {"temperature": 0, "num_ctx": NUM_CTX},
-        })
-        r.raise_for_status()
-        return json.loads(r.json()["message"]["content"])
-
-
-class FireworksProvider:
-    """OpenAI-compatible chat API with JSON-schema constrained output."""
-
-    def __init__(self, model: str):
-        self.model = model
-        self.key = os.environ["FIREWORKS_API_KEY"]
-
-    def generate_json(self, system: str, prompt: str, schema: dict) -> dict:
-        r = httpx.post(f"{FIREWORKS_URL}/chat/completions", timeout=600,
-                       headers={"Authorization": f"Bearer {self.key}"}, json={
+        r = httpx.post(f"{FIREWORKS_URL}/chat/completions", timeout=600, headers=_headers(), json={
             "model": self.model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
             "response_format": {"type": "json_schema", "json_schema": {"name": "answers", "schema": schema}},
@@ -71,20 +60,21 @@ class FireworksProvider:
 def embed(texts: list[str], kind: str = "document") -> list[list[float]]:
     """nomic-embed-text expects task prefixes."""
     prefix = "search_document: " if kind == "document" else "search_query: "
-    r = httpx.post(f"{OLLAMA_URL}/api/embed", timeout=120,
-                   json={"model": EMBED_MODEL, "input": [prefix + t for t in texts]})
-    r.raise_for_status()
-    return r.json()["embeddings"]
+    out: list[list[float]] = []
+    for i in range(0, len(texts), EMBED_BATCH):
+        r = httpx.post(f"{FIREWORKS_URL}/embeddings", timeout=120, headers=_headers(),
+                       json={"model": EMBED_MODEL, "input": [prefix + t for t in texts[i:i + EMBED_BATCH]]})
+        r.raise_for_status()
+        out += [d["embedding"] for d in sorted(r.json()["data"], key=lambda d: d["index"])]
+    return out
 
 
 def where_it_runs(model: str = EXTRACT_MODEL) -> dict:
     """For the Security page: who receives document text for this model."""
-    if model.startswith("accounts/"):
-        return {"host": "Fireworks AI (hosted inference, demo only)", "external": True}
-    return {"host": f"Ollama at {OLLAMA_URL} (self-hosted)", "external": not OLLAMA_URL.startswith(("http://localhost", "http://127.0.0.1"))}
+    return {"host": "Fireworks AI (hosted inference)", "external": True}
 
 
 def get_provider(model: str = EXTRACT_MODEL) -> LLMProvider:
-    if model.startswith("accounts/"):  # Fireworks model ids look like accounts/fireworks/models/<name>
-        return FireworksProvider(model)
-    return OllamaProvider(model)
+    if not model.startswith("accounts/"):  # Fireworks model ids look like accounts/fireworks/models/<name>
+        raise ValueError(f"{model!r} is not a Fireworks model id; this app runs on Fireworks only")
+    return FireworksProvider(model)

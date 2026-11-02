@@ -4,7 +4,9 @@ export type Doc = { id: number; filename: string; doc_type: string; product: str
 export type Candidate = Doc & { reasons: Reason[]; score: number }
 export type Rect = { page: number; x0: number; y0: number; x1: number; y1: number }
 export type Citation = {
-  id: number; doc_id: number; filename: string; chunk_id: number | null; quote: string
+  id: number; doc_id: number; filename: string; chunk_id: number | null
+  quote: string             // what the model claimed
+  source_text: string | null // the PDF's own words for the exact match; the only text shown as a quote
   verified: boolean; match_score: number | null; page: number | null; rects: Rect[]
 }
 export type Cell = {

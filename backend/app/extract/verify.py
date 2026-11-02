@@ -1,52 +1,54 @@
-"""Citation verification: the model's quote must actually exist in the source.
+"""Citation verification: the model's quote must exist, exactly, in the source.
 
-A quote is located with fuzzy alignment (tolerates whitespace/hyphenation/case
-differences from PDF extraction). The matched character span maps to word indices,
-and the words to rectangles on the original PDF page. No match → unverified, and
-the UI shows no highlight rather than a made-up one.
+A quote is verified only if it appears verbatim in the document's words. The only
+differences tolerated are case, whitespace, and typographic variants (curly vs straight
+quotes, dash types, ligatures). No fuzzy matching: a quote with one word changed is
+unverified. The matched words then become (a) the rectangles highlighted on the original
+PDF and (b) the quote text we display, so what users see in quotation marks is always
+the document's own text, never the model's copy of it.
 """
-import re
+import unicodedata
 from dataclasses import dataclass
 
-from rapidfuzz import fuzz
-
-MIN_SCORE = 90.0
-_norm_re = re.compile(r"[^a-z0-9%.,;:/()+\-<>]+")
+_TYPO = str.maketrans({"‘": "'", "’": "'", "‚": "'", "‛": "'", "“": '"', "”": '"', "„": '"',
+                       "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-", " ": " "})
 
 
 def norm(s: str) -> str:
-    return _norm_re.sub(" ", s.lower()).strip()
+    return " ".join(unicodedata.normalize("NFKC", s).translate(_TYPO).lower().split())
 
 
 @dataclass
 class Match:
-    score: float
     word_start: int  # inclusive, words.idx
     word_end: int
+    text: str        # the source document's own words for the matched span
+    score: float = 100.0
 
 
 def locate(quote: str, words: list[dict]) -> Match | None:
-    """Find `quote` within an ordered list of word rows ({idx, text, ...})."""
-    q = norm(quote)
+    """Find `quote` verbatim within an ordered list of word rows ({idx, text, ...})."""
+    q = norm(quote).strip(" \"'")  # models sometimes wrap the quote in quote marks
     if len(q) < 4 or not words:
         return None
-    # Build the normalized haystack with a char-offset → word map.
     parts, owners, pos = [], [], 0
     for w in words:
         t = norm(w["text"])
         if not t:
             continue
         parts.append(t)
-        owners.append((pos, pos + len(t), w["idx"]))
+        owners.append((pos, pos + len(t), w))
         pos += len(t) + 1
     hay = " ".join(parts)
-    if len(q) > len(hay):
-        return None
-    al = fuzz.partial_ratio_alignment(q, hay, score_cutoff=MIN_SCORE)
-    if al is None:
-        return None
-    hit = [idx for s, e, idx in owners if s < al.dest_end and e > al.dest_start]
-    return Match(al.score, hit[0], hit[-1]) if hit else None
+    i = hay.find(q)
+    while i != -1:
+        j = i + len(q)
+        # Must start on a word boundary and not end mid-word ("PH-10" must not match "PH-102").
+        if (i == 0 or hay[i - 1] == " ") and (j == len(hay) or not hay[j].isalnum()):
+            hit = [w for s, e, w in owners if s < j and e > i]
+            return Match(hit[0]["idx"], hit[-1]["idx"], " ".join(w["text"] for w in hit))
+        i = hay.find(q, i + 1)
+    return None
 
 
 def rects_for(words: list[dict], start: int, end: int) -> list[dict]:
