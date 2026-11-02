@@ -93,7 +93,7 @@ export default function Results() {
       note = prompt('Reason for the edit (kept in the audit log):') ?? undefined
     }
     if (action === 'flag') { note = prompt('What is wrong?') ?? undefined; if (note == null) return }
-    await api.reviewCell(cell.id, action, value, note)
+    try { await api.reviewCell(cell.id, action, value, note) } catch (e) { alert((e as Error).message); return }
     setJob(await api.job(id))
     setAudit(await api.audit(`cell:${cell.id}`))
   }
@@ -157,47 +157,52 @@ export default function Results() {
 
       <div className="viewer-pane">
         {cell && question && (
-          <section className="card detail">
+          <section className="detail">
             <div className="row between">
-              <h3>{question.key}</h3>
-              <span className={`badge ${cell.status}`}>{STATUS_LABEL[cell.status]}</span>
+              <div className="row">
+                <b title={question.prompt}>{question.key}</b>
+                <span className={`badge ${cell.status}`}>{STATUS_LABEL[cell.status]}</span>
+                {question.max_words && (cell.value?.items ?? []).some(v => v.split(/\s+/).length > question.max_words!) &&
+                  <span className="badge error">over {question.max_words}-word limit</span>}
+              </div>
+              <div className="row">
+                <button className="primary" onClick={() => act('accept')}>Accept</button>
+                <button className="secondary" onClick={() => act('edit')}>Edit</button>
+                <button className="danger" onClick={() => act('flag')}>Flag</button>
+              </div>
             </div>
-            <p className="muted small">{question.prompt}{question.max_words ? ` · limit ${question.max_words} words` : ''}</p>
-            {question.max_words && (cell.value?.items ?? []).some(v => v.split(/\s+/).length > question.max_words!) &&
-              <p className="small error">Over the {question.max_words}-word limit.</p>}
-            {(() => {
-              const { items, summary } = display(cell, question.answer_type)
-              if (!items.length) return <p className="muted">No answer found in this document.</p>
-              return <>
-                <ul>{items.map((v, i) => <li key={i}><Item text={v} cell={cell} tag /></li>)}</ul>
-                {summary && <p className="small summary"><span className="vtag model">model summary, paraphrased</span> {summary.join(' ')}</p>}
-              </>
-            })()}
-            {cell.value?.explanation && <p className="small"><i>{cell.value.explanation}</i></p>}
-            <h4>Evidence</h4>
-            {!cell.citations.length && <p className="muted small">No citations.</p>}
-            {cell.citations.map(ci => (
-              <button key={ci.id} className={`citation ${ci.verified ? 'ok' : 'bad'} ${cite?.id === ci.id ? 'sel' : ''}`}
-                onClick={() => { setCite(ci); setViewDoc(ci.doc_id) }}>
-                <span className="small">{ci.verified ? `✓ found verbatim (${Math.round(ci.match_score ?? 0)}%)` : '✕ quote not found in source'}
-                  {' · '}{ci.filename}{ci.page != null ? ` p.${ci.page + 1}` : ''}</span>
+            {/* The answer itself is in the grid cell; here only the model's reasoning, minus its internal chunk labels. */}
+            {(cell.value?.explanation || display(cell, question.answer_type).summary) &&
+              <p className="small muted why">{display(cell, question.answer_type).summary?.join(' ')
+                ?? cell.value!.explanation.replace(/\[?\b[CR]\d+\b\]?/g, m => m.includes('R') ? 'the reference' : 'the document')
+                  .replace(/^./, c => c.toUpperCase())}</p>}
+            <div className="row wrap">
+              <span className="small muted">Evidence:</span>
+              {!cell.citations.length && <span className="small muted">none</span>}
+              {/* Verified quotes are shown where they live, on the PDF; these just jump to them. */}
+              {cell.citations.filter(ci => ci.verified).map((ci, i) => (
+                <button key={ci.id} className={`jump ${cite?.id === ci.id ? 'sel' : ''}`} title={ci.quote}
+                  onClick={() => { setCite(ci); setViewDoc(ci.doc_id) }}>
+                  ✓ {i + 1} · {ci.doc_id !== cell.doc_id ? 'reference ' : ''}p.{(ci.page ?? 0) + 1}
+                </button>
+              ))}
+              {audit.length > 0 && (
+                <details className="small audit-d">
+                  <summary>history ({audit.length})</summary>
+                  <ul className="audit">
+                    {audit.map(a => <li key={a.id}><b>{a.actor}</b> {a.action.replace('cell_', '')} · {new Date(a.at).toLocaleString()}
+                      {typeof a.payload.note === 'string' && a.payload.note && <> · “{a.payload.note}”</>}</li>)}
+                  </ul>
+                </details>
+              )}
+            </div>
+            {/* Unverified quotes have no highlight, so their text is the only thing to show. */}
+            {cell.citations.filter(ci => !ci.verified).map(ci => (
+              <div key={ci.id} className="citation bad small">
+                <span>✕ Quote not found in the source; nothing to highlight</span>
                 <q>{ci.quote}</q>
-              </button>
+              </div>
             ))}
-            <div className="row">
-              <button className="primary" onClick={() => act('accept')}>Accept</button>
-              <button className="secondary" onClick={() => act('edit')}>Edit</button>
-              <button className="danger" onClick={() => act('flag')}>Flag</button>
-            </div>
-            {audit.length > 0 && (
-              <details>
-                <summary className="small">Audit trail ({audit.length})</summary>
-                <ul className="audit small">
-                  {audit.map(a => <li key={a.id}><b>{a.actor}</b> {a.action.replace('cell_', '')} · {new Date(a.at).toLocaleString()}
-                    {typeof a.payload.note === 'string' && a.payload.note && <> · “{a.payload.note}”</>}</li>)}
-                </ul>
-              </details>
-            )}
           </section>
         )}
         {viewDoc ? (

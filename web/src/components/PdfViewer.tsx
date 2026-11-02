@@ -10,29 +10,36 @@ const WIDTH = 620
 /** Renders the ORIGINAL PDF and draws citation rectangles (PDF points, top-left origin) over it. */
 export default function PdfViewer({ url, rects, focusPage }: { url: string; rects: Rect[]; focusPage: number | null }) {
   const [pages, setPages] = useState(0)
-  const [pageW, setPageW] = useState<Record<number, number>>({})
+  const [size, setSize] = useState<Record<number, { w: number; h: number }>>({})
   const refs = useRef<Record<number, HTMLDivElement | null>>({})
 
+  // Scroll so the first highlight sits about a third of the way down the viewer. Measured relative
+  // to the scroll container (not the page), and only once every page up to the target has its size.
+  const ready = focusPage != null && pages > 0 && Array.from({ length: focusPage + 1 }, (_, i) => size[i]).every(Boolean)
   useEffect(() => {
-    if (focusPage == null || !pages) return
+    if (!ready || focusPage == null) return
     const t = setTimeout(() => {
-      const first = rects.find(r => r.page === focusPage)
       const el = refs.current[focusPage]
-      if (!el) return
-      const scale = WIDTH / (pageW[focusPage] ?? 612)
-      el.parentElement?.parentElement?.scrollTo({ top: el.offsetTop + (first ? first.y0 * scale - 160 : 0), behavior: 'smooth' })
-    }, 150)
+      const box = el?.closest('.viewer-scroll') as HTMLElement | null
+      if (!el || !box) return
+      const first = rects.find(r => r.page === focusPage)
+      const scale = WIDTH / size[focusPage].w
+      const pageTop = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+      box.scrollTo({ top: pageTop + (first ? first.y0 * scale - box.clientHeight / 3 : 0), behavior: 'smooth' })
+    }, 50)
     return () => clearTimeout(t)
-  }, [url, focusPage, pages, rects, pageW])
+  }, [url, focusPage, rects, ready])  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Document file={url} onLoadSuccess={({ numPages }) => setPages(numPages)} loading={<p className="muted">Loading PDF…</p>}>
       {Array.from({ length: pages }, (_, i) => {
-        const scale = WIDTH / (pageW[i] ?? 612)
+        const s = size[i] ?? { w: 612, h: 792 }  // US Letter until the real size is known
+        const scale = WIDTH / s.w
         return (
-          <div key={i} className="pdfpage" ref={el => { refs.current[i] = el }}>
+          // Fixed height up front so pages don't change height while rendering and shift the scroll target.
+          <div key={i} className="pdfpage" style={{ height: s.h * scale }} ref={el => { refs.current[i] = el }}>
             <Page pageNumber={i + 1} width={WIDTH} renderAnnotationLayer={false}
-              onLoadSuccess={p => setPageW(w => ({ ...w, [i]: p.originalWidth }))} />
+              onLoadSuccess={p => setSize(m => ({ ...m, [i]: { w: p.originalWidth, h: p.originalHeight } }))} />
             {rects.filter(r => r.page === i).map((r, j) => (
               <div key={j} className="hl" style={{
                 left: r.x0 * scale - 2, top: r.y0 * scale - 1,

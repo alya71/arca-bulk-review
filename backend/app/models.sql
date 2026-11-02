@@ -47,8 +47,10 @@ CREATE TABLE IF NOT EXISTS reviews (
   doc_filter        JSONB NOT NULL DEFAULT '{}',   -- {doc_type, product, query}
   reference_doc_id  INT REFERENCES documents(id),  -- e.g. current spec for contradiction checks
   created_by        TEXT NOT NULL,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  purpose           TEXT                           -- why this review was run (kept for the audit trail)
 );
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS purpose TEXT;
 
 CREATE TABLE IF NOT EXISTS questions (
   id           SERIAL PRIMARY KEY,
@@ -128,3 +130,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
   payload  JSONB NOT NULL DEFAULT '{}',
   at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Append-only: the audit trail can be added to, never rewritten (enforced by the database, not the app).
+CREATE OR REPLACE FUNCTION audit_log_immutable() RETURNS trigger AS $$
+BEGIN RAISE EXCEPTION 'audit_log is append-only'; END $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS audit_log_no_change ON audit_log;
+CREATE TRIGGER audit_log_no_change BEFORE UPDATE OR DELETE OR TRUNCATE ON audit_log
+  FOR EACH STATEMENT EXECUTE FUNCTION audit_log_immutable();

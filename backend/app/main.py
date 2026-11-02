@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from .db import BLOB_DIR, audit, init_db, pool
 from .extract.run import PROMPT_VERSION
 from .ingest import ingest_pdf
-from .llm import EXTRACT_MODEL
+from .llm import EMBED_MODEL, EXTRACT_MODEL, where_it_runs
 from .presets import PRESETS
 from .search import find_candidates
 
@@ -76,6 +76,7 @@ class ReviewIn(BaseModel):
     name: str
     doc_filter: dict = {}
     reference_doc_id: int | None = None
+    purpose: str | None = None
     questions: list[QuestionIn]
 
 
@@ -86,8 +87,8 @@ def create_review(body: ReviewIn, x_user: str | None = Header(None)):
     actor = user_of(x_user)
     with pool.connection() as conn, conn.transaction():
         rid = conn.execute(
-            "INSERT INTO reviews(name, doc_filter, reference_doc_id, created_by) VALUES (%s,%s,%s,%s) RETURNING id",
-            (body.name, json.dumps(body.doc_filter), body.reference_doc_id, actor)).fetchone()["id"]
+            "INSERT INTO reviews(name, doc_filter, reference_doc_id, created_by, purpose) VALUES (%s,%s,%s,%s,%s) RETURNING id",
+            (body.name, json.dumps(body.doc_filter), body.reference_doc_id, actor, body.purpose)).fetchone()["id"]
         for i, q in enumerate(body.questions):
             conn.execute("INSERT INTO questions(review_id, ord, key, prompt, answer_type, max_words) VALUES (%s,%s,%s,%s,%s,%s)",
                          (rid, i, q.key, q.prompt, q.answer_type, q.max_words))
@@ -99,7 +100,7 @@ def create_review(body: ReviewIn, x_user: str | None = Header(None)):
 def list_reviews():
     with pool.connection() as conn:
         return conn.execute(
-            """SELECT r.id, r.name, r.created_by, r.created_at,
+            """SELECT r.id, r.name, r.purpose, r.doc_filter->>'product' AS product, r.created_by, r.created_at,
                       (SELECT max(id) FROM jobs WHERE review_id=r.id) AS latest_job,
                       (SELECT count(*) FROM review_documents WHERE review_id=r.id) AS docs
                FROM reviews r ORDER BY r.id DESC LIMIT 20""").fetchall()
@@ -203,6 +204,8 @@ def review_cell(cid: int, body: CellReviewIn, x_user: str | None = Header(None))
     if body.action not in ("accept", "edit", "flag"):
         raise HTTPException(400, "action must be accept, edit or flag")
     actor = user_of(x_user)
+    if actor == "anonymous":  # a sign-off has to be attributable to a person
+        raise HTTPException(400, "Enter your name in the Reviewer field before accepting, editing or flagging")
     state = {"accept": "accepted", "edit": "edited", "flag": "flagged"}[body.action]
     with pool.connection() as conn, conn.transaction():
         cell = conn.execute("SELECT c.*, j.model, j.prompt_version FROM cells c JOIN jobs j ON j.id=c.job_id "
@@ -218,6 +221,13 @@ def review_cell(cid: int, body: CellReviewIn, x_user: str | None = Header(None))
               {"before": cell["value"], "after": new_value, "note": body.note,
                "model": cell["model"], "prompt_version": cell["prompt_version"]})
     return {"reviewer_state": state}
+
+
+@app.get("/api/system")
+def system():
+    """What the Security page shows: which model is configured and where document text goes."""
+    return {"extract_model": EXTRACT_MODEL, "embed_model": EMBED_MODEL, "extract_host": where_it_runs(EXTRACT_MODEL),
+            "embed_host": where_it_runs(EMBED_MODEL)}
 
 
 @app.get("/api/audit")

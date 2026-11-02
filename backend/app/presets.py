@@ -3,7 +3,7 @@
 PRESETS = [
     {
         "id": "cmc_excipients",
-        "name": "CMC excipient grades vs current spec",
+        "name": "Excipient grade audit",
         "doc_filter": {"doc_type": "cmc", "query": "excipient grade"},
         "reference": "spec",
         "questions": [

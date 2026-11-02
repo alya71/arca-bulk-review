@@ -32,7 +32,7 @@ Each job records the model it ran with. Embeddings always run locally via Ollama
 `docker-compose.yml` is included but untested; the native setup above is the supported path.
 
 ## Demo path
-1. **New review** → pick the *CMC excipient grades vs current spec* template (it attaches the current spec as the reference document).
+1. **New review** → pick the *Excipient grade audit* template (it attaches the current spec as the reference document).
 2. **Confirm documents**: each candidate shows *why* it matched (filter / keyword snippet / semantic score). Uncheck any, add more, or upload a PDF.
 3. **Results**: the grid fills in as tasks finish. Click a cell to see the answer, the explanation, and each citation (✓ verified / ✕ not found in source). The original PDF opens with the quote highlighted. Accept / Edit / Flag writes to the audit trail.
 4. Score the run against ground truth: `backend/.venv/bin/python scripts/eval.py <job_id>`.

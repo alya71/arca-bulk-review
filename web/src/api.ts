@@ -21,6 +21,9 @@ export type Job = {
 export type Preset = { id: string; name: string; doc_filter: Record<string, string>; reference?: string; questions: Question[] }
 export type AuditEntry = { id: number; actor: string; action: string; entity: string; payload: Record<string, unknown>; at: string }
 
+export type Host = { host: string; external: boolean }
+export type System = { extract_model: string; embed_model: string; extract_host: Host; embed_host: Host }
+
 export const getUser = () => { try { return localStorage.getItem('user') || '' } catch { return '' } }
 export const setUser = (u: string) => { try { localStorage.setItem('user', u) } catch { /* private mode */ } }
 
@@ -36,7 +39,7 @@ export const api = {
   presets: () => req<Preset[]>('/presets'),
   documents: (doc_type?: string) => req<Doc[]>(`/documents${doc_type ? `?doc_type=${doc_type}` : ''}`),
   upload: (f: File) => { const fd = new FormData(); fd.append('file', f); return req<{ id: number }>('/documents', { method: 'POST', body: fd }) },
-  reviews: () => req<{ id: number; name: string; created_by: string; created_at: string; latest_job: number | null; docs: number }[]>('/reviews'),
+  reviews: () => req<{ id: number; name: string; purpose: string | null; product: string | null; created_by: string; created_at: string; latest_job: number | null; docs: number }[]>('/reviews'),
   createReview: (b: unknown) => req<{ id: number }>('/reviews', { method: 'POST', body: JSON.stringify(b) }),
   review: (id: number) => req<{ id: number; name: string; questions: Question[]; reference_doc: Doc | null; documents: Doc[] }>(`/reviews/${id}`),
   candidates: (id: number) => req<Candidate[]>(`/reviews/${id}/candidates`),
@@ -47,5 +50,7 @@ export const api = {
   reviewCell: (id: number, action: string, value?: string[], note?: string) =>
     req(`/cells/${id}/review`, { method: 'POST', body: JSON.stringify({ action, value, note }) }),
   audit: (entity: string) => req<AuditEntry[]>(`/audit?entity=${encodeURIComponent(entity)}`),
+  auditAll: () => req<AuditEntry[]>('/audit?limit=1000'),
+  system: () => req<System>('/system'),
   fileUrl: (docId: number) => `/api/documents/${docId}/file`,
 }

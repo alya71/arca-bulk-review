@@ -77,6 +77,13 @@ def embed(texts: list[str], kind: str = "document") -> list[list[float]]:
     return r.json()["embeddings"]
 
 
+def where_it_runs(model: str = EXTRACT_MODEL) -> dict:
+    """For the Security page: who receives document text for this model."""
+    if model.startswith("accounts/"):
+        return {"host": "Fireworks AI (hosted inference, demo only)", "external": True}
+    return {"host": f"Ollama at {OLLAMA_URL} (self-hosted)", "external": not OLLAMA_URL.startswith(("http://localhost", "http://127.0.0.1"))}
+
+
 def get_provider(model: str = EXTRACT_MODEL) -> LLMProvider:
     if model.startswith("accounts/"):  # Fireworks model ids look like accounts/fireworks/models/<name>
         return FireworksProvider(model)
