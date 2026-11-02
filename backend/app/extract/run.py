@@ -66,7 +66,11 @@ def run_task(conn, provider: LLMProvider, job: dict, review: dict, doc: dict, qu
     chunks = _select_chunks(conn, doc["id"], questions)
     ref_chunks = _reference_chunks(conn, review["reference_doc_id"], doc["product"]) if review["reference_doc_id"] else []
 
-    qs = "\n".join(f"- {q['key']} ({q['answer_type']}): {q['prompt']}" for q in questions)
+    def limit(q: dict) -> str:  # soft limit: a hard cut (maxLength) would break verbatim quotes mid-sentence
+        return (f" LENGTH LIMIT: every value item must be {q['max_words']} words or fewer. This overrides any "
+                f"instruction to copy whole sentences: copy only the shortest contiguous phrase that answers the "
+                f"question (citations may still quote the full sentence).") if q.get("max_words") else ""
+    qs = "\n".join(f"- {q['key']} ({q['answer_type']}): {q['prompt']}{limit(q)}" for q in questions)
     # Questions before and after the document: the model reads knowing what to look for.
     parts = [f"QUESTIONS:\n{qs}", f"DOCUMENT: {doc['filename']}\n\n" + "\n\n".join(_fmt("C", c) for c in chunks)]
     if ref_chunks:

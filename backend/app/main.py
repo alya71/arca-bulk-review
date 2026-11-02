@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .db import BLOB_DIR, audit, init_db, pool
 from .extract.run import PROMPT_VERSION
@@ -69,6 +69,7 @@ class QuestionIn(BaseModel):
     key: str
     prompt: str
     answer_type: str = "text"
+    max_words: int | None = Field(None, ge=1)
 
 
 class ReviewIn(BaseModel):
@@ -88,8 +89,8 @@ def create_review(body: ReviewIn, x_user: str | None = Header(None)):
             "INSERT INTO reviews(name, doc_filter, reference_doc_id, created_by) VALUES (%s,%s,%s,%s) RETURNING id",
             (body.name, json.dumps(body.doc_filter), body.reference_doc_id, actor)).fetchone()["id"]
         for i, q in enumerate(body.questions):
-            conn.execute("INSERT INTO questions(review_id, ord, key, prompt, answer_type) VALUES (%s,%s,%s,%s,%s)",
-                         (rid, i, q.key, q.prompt, q.answer_type))
+            conn.execute("INSERT INTO questions(review_id, ord, key, prompt, answer_type, max_words) VALUES (%s,%s,%s,%s,%s,%s)",
+                         (rid, i, q.key, q.prompt, q.answer_type, q.max_words))
         audit(conn, actor, "create_review", f"review:{rid}", body.model_dump())
     return {"id": rid}
 

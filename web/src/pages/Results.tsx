@@ -7,6 +7,34 @@ const STATUS_LABEL: Record<string, string> = {
   answered: 'verified', unverified: 'unverified', not_found: 'not found', error: 'error',
 }
 
+const norm = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+  .replace(/[‐-―]/g, '-').replace(/\s+/g, ' ').replace(/^[\s"'.,;:]+|[\s"'.,;:]+$/g, '')
+
+// An answer item is verbatim when it appears word-for-word inside one of the cell's verified quotes
+// (which were themselves matched against the PDF). Everything else is the model's wording.
+const isVerbatim = (item: string, c: Cell) => {
+  const n = norm(item)
+  return n.length >= 3 && c.citations.some(ci => ci.verified && norm(ci.quote).includes(n))
+}
+
+// For free-text answers the model tends to stitch sentences together with small rewordings.
+// If any item isn't verbatim, show the verified quotes (exact by construction) instead,
+// and keep the model's wording as a labelled summary.
+const display = (c: Cell, answerType?: string) => {
+  const items = c.value?.items ?? []
+  const quotes = c.citations.filter(ci => ci.verified).map(ci => ci.quote)
+  const paraphrased = answerType === 'text' && quotes.length > 0 && items.some(v => !isVerbatim(v, c))
+  return { items: paraphrased ? [...new Set(quotes)] : items, summary: paraphrased ? items : null }
+}
+
+function Item({ text, cell, tag }: { text: string; cell: Cell; tag?: boolean }) {
+  const v = isVerbatim(text, cell)
+  return <span className={v ? 'verbatim' : undefined} title={v ? 'Exact text from the document' : 'Model wording; check the evidence'}>
+    {v ? <>“{text}”</> : text}
+    {tag && <span className={`vtag ${v ? 'exact' : 'model'}`}>{v ? 'exact quote' : 'model wording'}</span>}
+  </span>
+}
+
 export default function Results() {
   const id = Number(useParams().id)
   const [params, setParams] = useSearchParams()
@@ -107,13 +135,14 @@ export default function Results() {
                   {job.questions.map(q => {
                     const c = cellAt.get(`${r.doc_id}:${q.id}`)
                     if (!c) return <td key={q.id} className="pending">{r.task_status === 'failed' ? '-' : '…'}</td>
+                    const { items } = display(c, q.answer_type)
                     return (
                       <td key={q.id} className={`cell ${c.status} ${c.id === sel ? 'sel' : ''} rv-${c.reviewer_state}`} onClick={() => selectCell(c)}>
                         <span className={`dot ${c.status}`} title={STATUS_LABEL[c.status]} />
                         {c.status === 'not_found' ? <span className="muted">not found</span> :
-                          (c.value?.items ?? []).length > 1
-                            ? <ul>{c.value!.items.map((v, i) => <li key={i}>{v}</li>)}</ul>
-                            : <span>{c.value?.items[0]}</span>}
+                          items.length > 1
+                            ? <ul>{items.map((v, i) => <li key={i}><Item text={v} cell={c} /></li>)}</ul>
+                            : items[0] != null && <Item text={items[0]} cell={c} />}
                         {c.reviewer_state !== 'pending' && <span className={`rv ${c.reviewer_state}`}>{c.reviewer_state}</span>}
                       </td>
                     )
@@ -133,8 +162,17 @@ export default function Results() {
               <h3>{question.key}</h3>
               <span className={`badge ${cell.status}`}>{STATUS_LABEL[cell.status]}</span>
             </div>
-            <p className="muted small">{question.prompt}</p>
-            {cell.value?.items.length ? <ul>{cell.value.items.map((v, i) => <li key={i}>{v}</li>)}</ul> : <p className="muted">No answer found in this document.</p>}
+            <p className="muted small">{question.prompt}{question.max_words ? ` · limit ${question.max_words} words` : ''}</p>
+            {question.max_words && (cell.value?.items ?? []).some(v => v.split(/\s+/).length > question.max_words!) &&
+              <p className="small error">Over the {question.max_words}-word limit.</p>}
+            {(() => {
+              const { items, summary } = display(cell, question.answer_type)
+              if (!items.length) return <p className="muted">No answer found in this document.</p>
+              return <>
+                <ul>{items.map((v, i) => <li key={i}><Item text={v} cell={cell} tag /></li>)}</ul>
+                {summary && <p className="small summary"><span className="vtag model">model summary, paraphrased</span> {summary.join(' ')}</p>}
+              </>
+            })()}
             {cell.value?.explanation && <p className="small"><i>{cell.value.explanation}</i></p>}
             <h4>Evidence</h4>
             {!cell.citations.length && <p className="muted small">No citations.</p>}

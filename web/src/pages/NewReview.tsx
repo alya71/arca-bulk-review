@@ -76,8 +76,12 @@ export default function NewReview() {
         </label>
       </section>
 
-      <section className="card">
-        <h3>Questions <span className="muted small">(asked of every document)</span></h3>
+      <details className="card qs">
+        <summary>
+          <h3>Questions <span className="muted small">
+            ({questions.filter(q => q.key.trim()).length}, asked of every document{questions.some(q => q.key.trim()) ? `: ${questions.filter(q => q.key.trim()).map(q => q.key).join(', ')}` : ''})
+          </span></h3>
+        </summary>
         {questions.map((q, i) => (
           <div key={i} className="question">
             <input className="qkey" value={q.key} placeholder="column_key" onChange={e => setQ(i, { key: e.target.value })} />
@@ -86,10 +90,14 @@ export default function NewReview() {
             </select>
             <textarea value={q.prompt} rows={2} placeholder="What do you want to know?" onChange={e => setQ(i, { prompt: e.target.value })} />
             <button className="ghost" title="Remove" onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))}>✕</button>
+            <label className="maxw">Max words
+              <input type="number" min={1} placeholder="optional" value={q.max_words ?? ''}
+                onChange={e => setQ(i, { max_words: e.target.value ? Math.max(1, Number(e.target.value)) : null })} />
+            </label>
           </div>
         ))}
         <button className="secondary" onClick={() => setQuestions(qs => [...qs, { key: '', prompt: '', answer_type: 'text' }])}>+ Add question</button>
-      </section>
+      </details>
 
       {err && <p className="error">{err}</p>}
       <button className="primary" onClick={submit}>Find documents →</button>

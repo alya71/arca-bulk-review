@@ -1,5 +1,5 @@
 """Headless end-to-end run of a preset through the API: create review → candidates →
-confirm → start job → wait. Usage: python scripts/run_preset.py cmc_excipients"""
+confirm → start job → wait. Usage: python scripts/run_preset.py cmc_excipients [question_key=max_words ...]"""
 import sys
 import time
 
@@ -9,9 +9,11 @@ API = "http://localhost:8000/api"
 H = {"X-User": "demo-script"}
 
 
-def main(preset_id: str) -> int:
+def main(preset_id: str, max_words: dict[str, int] | None = None) -> int:
     c = httpx.Client(base_url=API, headers=H, timeout=60)
     p = next(p for p in c.get("/presets").json() if p["id"] == preset_id)
+    for q in p["questions"]:
+        q["max_words"] = (max_words or {}).get(q["key"])
     ref = None
     if p.get("reference"):
         ref = next(d["id"] for d in c.get("/documents", params={"doc_type": p["reference"]}).json())
@@ -33,4 +35,5 @@ def main(preset_id: str) -> int:
 
 
 if __name__ == "__main__":
-    print("job", main(sys.argv[1] if len(sys.argv) > 1 else "cmc_excipients"))
+    limits = {k: int(v) for k, v in (a.split("=") for a in sys.argv[2:])}
+    print("job", main(sys.argv[1] if len(sys.argv) > 1 else "cmc_excipients", limits))

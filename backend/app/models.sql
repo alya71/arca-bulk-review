@@ -56,8 +56,10 @@ CREATE TABLE IF NOT EXISTS questions (
   ord          INT NOT NULL,
   key          TEXT NOT NULL,
   prompt       TEXT NOT NULL,
-  answer_type  TEXT NOT NULL DEFAULT 'text'        -- text | list | date | boolean
+  answer_type  TEXT NOT NULL DEFAULT 'text',       -- text | list | date | boolean
+  max_words    INT                                 -- optional length limit per answer item
 );
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS max_words INT;
 
 -- The confirmed document set. Nothing runs on a document that isn't here.
 CREATE TABLE IF NOT EXISTS review_documents (

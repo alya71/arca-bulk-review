@@ -10,7 +10,10 @@ PRESETS = [
             {"key": "excipient_grades", "answer_type": "list",
              "prompt": "List every excipient with the grade used, formatted 'Excipient: grade'."},
             {"key": "grade_justification", "answer_type": "text",
-             "prompt": "What justification is given for the choice of excipient grade?"},
+             "prompt": "What justification is given for the choice of excipient grade? In value, copy the sentence(s) "
+                       "that state the justification exactly as written, one sentence per item, with no rewording, "
+                       "merging or trimming. Skip generic statements that apply to all excipients (e.g. 'followed a "
+                       "risk-based approach'). In explanation, give the justification in one plain sentence."},
             {"key": "guidance_cited", "answer_type": "list",
              "prompt": "Which regulatory guidance documents or compendial monographs are cited?"},
             # Comparison first (schema order = generation order) so the yes/no is reasoned, and reviewable.

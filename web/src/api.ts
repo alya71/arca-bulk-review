@@ -1,4 +1,4 @@
-export type Question = { id?: number; key: string; prompt: string; answer_type: string }
+export type Question = { id?: number; key: string; prompt: string; answer_type: string; max_words?: number | null }
 export type Reason = { kind: 'filter' | 'keyword' | 'semantic'; detail: string }
 export type Doc = { id: number; filename: string; doc_type: string; product: string | null; title?: string; page_count?: number }
 export type Candidate = Doc & { reasons: Reason[]; score: number }
